@@ -24,7 +24,7 @@ Phishsim is a comprehensive phishing simulation platform designed to strengthen 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/rohitcraftsyt/phishsim.git
+   git clone https://github.com/ROHITCRAFTSYT/phishsim.git
    cd phishsim
    ```
 
