@@ -7,8 +7,10 @@ License: MIT
 import os
 import json
 import random
+import secrets
 import smtplib
 import logging
+import warnings
 import datetime
 import argparse
 import sqlite3
@@ -26,7 +28,19 @@ from contextlib import contextmanager
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key_for_testing')
+# Never ship a hardcoded secret key: a known key lets anyone forge session
+# cookies (and CSRF tokens). Use SECRET_KEY from the environment; if it is
+# missing, generate a strong ephemeral key and warn (sessions then reset on
+# restart, which is the safe failure mode for a security-training tool).
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    _secret_key = secrets.token_hex(32)
+    warnings.warn(
+        "SECRET_KEY is not set; using a random ephemeral key. Sessions will not "
+        "persist across restarts. Set SECRET_KEY in the environment for production.",
+        RuntimeWarning,
+    )
+app.config['SECRET_KEY'] = _secret_key
 app.config['DATABASE'] = os.path.join(app.instance_path, 'phishguard.db')
 app.config['SMTP_SERVER'] = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
 app.config['SMTP_PORT'] = int(os.environ.get('SMTP_PORT', 587))
@@ -1043,7 +1057,8 @@ def create_sample_data():
 
 def main():
     parser = argparse.ArgumentParser(description='PhishGuard - Phishing Simulation Tool for Employee Education')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on')
+    parser.add_argument('--host', default='127.0.0.1',
+                        help='Host to bind (default: 127.0.0.1; use 0.0.0.0 to expose on all interfaces)')
     parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
     parser.add_argument('--sample-data', action='store_true', help='Create sample data for testing')
